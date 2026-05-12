@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard — Feedback UI{% endblock %}
+
+{% block head %}
+<link href="{{ url_for('static', filename='css/admin.css') }}" rel="stylesheet"/>
+{% endblock %}
+
+{% block body %}
+<div class="admin-layout">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <i class="bi bi-chat-square-heart-fill brand-icon"></i>
+      <span class="brand-name">FeedbackUI</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="{{ url_for('admin_dashboard') }}" class="nav-item active">
+        <i class="bi bi-grid-1x2-fill"></i> Dashboard
+      </a>
+      <a href="{{ url_for('admin_export') }}" class="nav-item">
+        <i class="bi bi-download"></i> Export CSV
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="admin-info">
+        <div class="admin-avatar">{{ session.admin_name[0]|upper }}</div>
+        <div>
+          <div class="admin-name">{{ session.admin_name }}</div>
+          <div class="admin-role">Administrator</div>
+        </div>
+      </div>
+      <a href="{{ url_for('admin_logout') }}" class="logout-btn" title="Logout">
+        <i class="bi bi-box-arrow-right"></i>
+      </a>
+    </div>
+  </aside>
+
+  <!-- ── Main content ── -->
+  <main class="main-content">
+
+    <!-- Top bar -->
+    <header class="topbar">
+      <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+        <i class="bi bi-list"></i>
+      </button>
+      <div class="topbar-title">
+        <h2>Reviews Dashboard</h2>
+        <span class="topbar-date">{{ now }}</span>
+      </div>
+      <a href="{{ url_for('admin_export') }}" class="export-btn">
+        <i class="bi bi-download me-1"></i> Export CSV
+      </a>
+    </header>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="px-4 pt-3">
+          {% for cat, msg in messages %}
+          <div class="flash-msg flash-{{ cat }}" role="alert">
+            <i class="bi bi-{{ 'check-circle' if cat == 'success' else 'info-circle' }}-fill me-2"></i>{{ msg }}
+          </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="content-body">
+
+      <!-- ── Stats cards ── -->
+      <div class="stats-grid mb-4">
+        <div class="stat-card stat-total">
+          <div class="stat-icon"><i class="bi bi-chat-left-text-fill"></i></div>
+          <div class="stat-info">
+            <div class="stat-value">{{ total_reviews }}</div>
+            <div class="stat-label">Total Reviews</div>
+          </div>
+        </div>
+        {% for val, meta in rating_meta.items() %}
+        <div class="stat-card" style="--accent-c:{{ meta.color }}">
+          <div class="stat-icon stat-emoji">{{ meta.emoji }}</div>
+          <div class="stat-info">
+            <div class="stat-value">{{ stats.get(val, 0) }}</div>
+            <div class="stat-label">{{ meta.label }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- ── Filters ── -->
+      <form method="GET" action="{{ url_for('admin_dashboard') }}" class="filter-bar mb-4" id="filterForm">
+        <div class="filter-search">
+          <i class="bi bi-search filter-search-icon"></i>
+          <input type="text" name="search" class="filter-input" placeholder="Search name, email or comment…"
+                 value="{{ search }}" autocomplete="off"/>
+          {% if search %}<button type="button" class="filter-clear" id="clearSearch"><i class="bi bi-x"></i></button>{% endif %}
+        </div>
+        <select name="rating" class="filter-select" onchange="this.form.submit()">
+          <option value="all"   {{ 'selected' if filter_rating == 'all'   }}>All Ratings</option>
+          {% for val, meta in rating_meta.items() %}
+          <option value="{{ val }}" {{ 'selected' if filter_rating == val }}>{{ meta.emoji }} {{ meta.label }}</option>
+          {% endfor %}
+        </select>
+        <select name="sort" class="filter-select" onchange="this.form.submit()">
+          <option value="newest" {{ 'selected' if sort_by == 'newest' }}>Newest First</option>
+          <option value="oldest" {{ 'selected' if sort_by == 'oldest' }}>Oldest First</option>
+        </select>
+        <button type="submit" class="filter-btn">
+          <i class="bi bi-funnel-fill me-1"></i>Filter
+        </button>
+        {% if search or filter_rating != 'all' %}
+        <a href="{{ url_for('admin_dashboard') }}" class="filter-btn filter-btn-ghost">Clear</a>
+        {% endif %}
+      </form>
+
+      <!-- ── Table ── -->
+      {% if reviews %}
+      <div class="table-wrap">
+        <table class="reviews-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>User</th>
+              <th>Rating</th>
+              <th>Comment</th>
+              <th>Submitted</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in reviews %}
+            <tr>
+              <td class="td-id">#{{ r.id }}</td>
+              <td class="td-user">
+                <div class="user-avatar">{{ r.name[0]|upper }}</div>
+                <div>
+                  <div class="user-name">{{ r.name }}</div>
+                  <div class="user-email">{{ r.email }}</div>
+                </div>
+              </td>
+              <td>
+                {% set meta = rating_meta[r.rating] %}
+                <span class="rating-pill" style="--rc: {{ meta.color }}">
+                  {{ meta.emoji }} {{ meta.label }}
+                </span>
+              </td>
+              <td class="td-comment">
+                {% if r.comment %}
+                  <span class="comment-text" title="{{ r.comment }}">{{ r.comment }}</span>
+                {% else %}
+                  <span class="no-comment">—</span>
+                {% endif %}
+              </td>
+              <td class="td-date">
+                <span class="date-val">{{ r.submitted_at[:10] }}</span>
+                <span class="time-val">{{ r.submitted_at[11:16] }}</span>
+              </td>
+              <td>
+                <form method="POST" action="{{ url_for('admin_delete', review_id=r.id) }}"
+                      onsubmit="return confirmDelete(this)">
+                  <button type="submit" class="del-btn" title="Delete review">
+                    <i class="bi bi-trash3-fill"></i>
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      {% if total_pages > 1 %}
+      <div class="pagination-wrap mt-4">
+        {% for p in range(1, total_pages + 1) %}
+        <a href="{{ url_for('admin_dashboard', page=p, search=search, rating=filter_rating, sort=sort_by) }}"
+           class="page-btn {{ 'active' if p == current_page }}">{{ p }}</a>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% else %}
+      <!-- Empty state -->
+      <div class="empty-state">
+        <div class="empty-emoji">📭</div>
+        <h3 class="empty-title">No reviews found</h3>
+        <p class="empty-sub">
+          {% if search or filter_rating != 'all' %}
+          Try adjusting your filters or <a href="{{ url_for('admin_dashboard') }}">clear them</a>.
+          {% else %}
+          No feedback has been submitted yet.
+          {% endif %}
+        </p>
+      </div>
+      {% endif %}
+
+    </div><!-- /content-body -->
+  </main><!-- /main-content -->
+</div><!-- /admin-layout -->
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Sidebar toggle (mobile)
+  const toggle = document.getElementById('sidebarToggle');
+  const sidebar = document.getElementById('sidebar');
+  if (toggle) toggle.addEventListener('click', () => sidebar.classList.toggle('open'));
+
+  // Confirm delete
+  function confirmDelete(form) {
+    return confirm('Delete this review? This cannot be undone.');
+  }
+
+  // Clear search
+  const clearSearch = document.getElementById('clearSearch');
+  if (clearSearch) clearSearch.addEventListener('click', () => {
+    document.querySelector('[name="search"]').value = '';
+    document.getElementById('filterForm').submit();
+  });
+</script>
+{% endblock %}

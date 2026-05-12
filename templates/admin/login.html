@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Admin Login — Feedback UI{% endblock %}
+
+{% block body %}
+<div class="blob blob-1" aria-hidden="true"></div>
+<div class="blob blob-2" aria-hidden="true"></div>
+
+<div class="page-wrapper d-flex align-items-center justify-content-center min-vh-100 px-3">
+  <div class="feedback-card" style="max-width:420px">
+
+    <!-- Logo / header -->
+    <div class="text-center mb-4">
+      <div class="admin-icon-wrap mb-3">
+        <i class="bi bi-shield-lock-fill"></i>
+      </div>
+      <span class="badge-chip mb-3">Admin Portal</span>
+      <h1 class="card-title" style="font-size:1.9rem">Welcome back</h1>
+      <p class="card-subtitle">Sign in to manage feedback.</p>
+    </div>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for cat, msg in messages %}
+        <div class="flash-msg flash-{{ cat }} mb-3" role="alert">
+          <i class="bi bi-{{ 'check-circle' if cat == 'success' else 'exclamation-circle' }}-fill me-2"></i>{{ msg }}
+        </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('admin_login') }}" novalidate>
+
+      <div class="mb-3">
+        <label for="username" class="comment-label">Username</label>
+        <div class="input-icon-wrap">
+          <i class="bi bi-person input-icon"></i>
+          <input type="text" id="username" name="username"
+                 class="comment-input ps-icon"
+                 placeholder="Enter username"
+                 autocomplete="username" required autofocus/>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <label for="password" class="comment-label">Password</label>
+        <div class="input-icon-wrap">
+          <i class="bi bi-lock input-icon"></i>
+          <input type="password" id="password" name="password"
+                 class="comment-input ps-icon"
+                 placeholder="Enter password"
+                 autocomplete="current-password" required/>
+          <button type="button" class="toggle-pw" id="togglePw" aria-label="Toggle password visibility">
+            <i class="bi bi-eye" id="eyeIcon"></i>
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn w-100">
+        <span class="btn-text">Sign In</span>
+        <i class="bi bi-arrow-right btn-icon"></i>
+      </button>
+
+    </form>
+
+    <p class="text-center mt-4" style="font-size:0.78rem; color:var(--text-dim)">
+      Default credentials: <strong style="color:var(--text-muted)">admin</strong> /
+      <strong style="color:var(--text-muted)">admin123</strong>
+    </p>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const btn = document.getElementById('togglePw');
+  const pwd = document.getElementById('password');
+  const eye = document.getElementById('eyeIcon');
+  if (btn) btn.addEventListener('click', () => {
+    const show = pwd.type === 'password';
+    pwd.type = show ? 'text' : 'password';
+    eye.className = show ? 'bi bi-eye-slash' : 'bi bi-eye';
+  });
+</script>
+{% endblock %}
